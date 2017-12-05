@@ -172,7 +172,6 @@ func (p *Plugin) Exec() error {
 		p.Config.SparkKubernetesShuffleLabels,
 		p.Config.KubernetesAuthenticateDriverServiceAccountName,
 		clintCertAuth,
-		p.Config.SparkMaster,
 		p.Config.SparkExcludePackages,
 		p.Config.SparkAppSource,
 		p.Config.SparkAppArgs,
