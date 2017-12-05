@@ -154,7 +154,6 @@ func (p *Plugin) Exec() error {
 		"%s "+
 		"%s "+
 		"%s "+
-		"%s "+
 		"%s ",
 		p.Config.SparkClass,
 		p.Config.SparkMaster,
