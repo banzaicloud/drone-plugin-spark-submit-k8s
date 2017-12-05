@@ -77,6 +77,7 @@ type (
 		KubernetesAuthenticateSubmissionCaCertFile     string
 		KubernetesAuthenticateSubmissionClientCertFile string
 		KubernetesAuthenticateSubmissionClientKeyFile  string
+		SparkMetricsConf                               string
 		SparkPackages                                  string
 		SparkExcludePackages                           string
 		SparkAppSource                                 string
@@ -151,6 +152,7 @@ func (p *Plugin) Exec() error {
 		"--conf spark.kubernetes.shuffle.namespace=%s "+
 		"--conf spark.kubernetes.shuffle.labels='%s' "+
 		"--conf spark.kubernetes.authenticate.driver.serviceAccountName='%s' "+
+		"--conf spark.metrics.conf='%s' "+
 		"%s "+
 		"%s "+
 		"%s "+
@@ -170,6 +172,7 @@ func (p *Plugin) Exec() error {
 		p.Config.SparkKubernetesShuffleNamespace,
 		p.Config.SparkKubernetesShuffleLabels,
 		p.Config.KubernetesAuthenticateDriverServiceAccountName,
+		p.Config.SparkMetricsConf,
 		clintCertAuth,
 		p.Config.SparkExcludePackages,
 		p.Config.SparkAppSource,

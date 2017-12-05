@@ -143,6 +143,11 @@ func main() {
 			EnvVar: "PLUGIN_SPARK_KUBERNETES_AUTHENTICATE_SUBMISSION_CLIENTKEYFILE",
 		},
 		cli.StringFlag{
+			Name:   "plugin.spark.metrics.conf",
+			Usage:  "Spark Metrics Config",
+			EnvVar: "PLUGIN_SPARK_METRICS_CONF",
+		},
+		cli.StringFlag{
 			Name:   "plugin.spark.packages",
 			Usage:  "Spark Packages",
 			EnvVar: "PLUGIN_SPARK_PACKAGES",
@@ -200,6 +205,7 @@ func run(c *cli.Context) {
 			KubernetesAuthenticateSubmissionCaCertFile:     c.String("plugin.kubernetes.authenticate.submission.caCertFile"),
 			KubernetesAuthenticateSubmissionClientCertFile: c.String("plugin.kubernetes.authenticate.submission.clientCertFile"),
 			KubernetesAuthenticateSubmissionClientKeyFile:  c.String("plugin.kubernetes.authenticate.submission.clientKeyFile"),
+			SparkMetricsConf:                               c.String("plugin.spark.metrics.conf"),
 			SparkPackages:                                  c.String("plugin.spark.packages"),
 			SparkExcludePackages:                           c.String("plugin.spark.exclude-packages"),
 			SparkAppSource:                                 c.String("plugin.spark.app.source"),
