@@ -129,7 +129,7 @@ func (p *Plugin) Exec() error {
 	}
 
 	if p.Config.SparkPackages != "" {
-		p.Config.SparkMaster = fmt.Sprintf("--packages %s", p.Config.SparkPackages)
+		p.Config.SparkPackages = fmt.Sprintf("--packages %s", p.Config.SparkPackages)
 	}
 
 	if p.Config.SparkExcludePackages != "" {
