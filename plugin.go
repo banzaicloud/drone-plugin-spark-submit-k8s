@@ -156,6 +156,7 @@ func (p *Plugin) Exec() error {
 		"%s "+
 		"%s "+
 		"%s "+
+		"%s "+
 		"%s ",
 		p.Config.SparkClass,
 		p.Config.SparkMaster,
@@ -174,6 +175,7 @@ func (p *Plugin) Exec() error {
 		p.Config.KubernetesAuthenticateDriverServiceAccountName,
 		p.Config.SparkMetricsConf,
 		clintCertAuth,
+		p.Config.SparkPackages,
 		p.Config.SparkExcludePackages,
 		p.Config.SparkAppSource,
 		p.Config.SparkAppArgs,
