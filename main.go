@@ -155,7 +155,7 @@ func main() {
 		cli.StringFlag{
 			Name:   "plugin.spark.exclude-packages",
 			Usage:  "Spark Exclude Packages",
-			EnvVar: "PLUGIN_SPARK_EXCLUDE-PACKAGES",
+			EnvVar: "PLUGIN_SPARK_EXCLUDE_PACKAGES",
 		},
 		cli.StringFlag{
 			Name:   "plugin.spark.app.source",
