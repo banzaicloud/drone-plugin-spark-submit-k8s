@@ -10,4 +10,4 @@ This plugin implements a fully configurable `spark-submit` step, as described [h
 ## Usage
 
 For using the plugin the plugin configuration step (run) has to be added to the Banzai Pipeline CI/CD configuration as it can be seen in the following examples 
- [here](https://github.com/banzaicloud/spark-pi-example/blob/master/.drone.yml) and [here](https://github.com/banzaicloud/spark-pdi-example/blob/master/.drone.yml)
+ [here](https://github.com/banzaicloud/spark-pi-example/blob/master/.pipeline.yml) and [here](https://github.com/banzaicloud/spark-pdi-example/blob/master/.pipeline.yml)
