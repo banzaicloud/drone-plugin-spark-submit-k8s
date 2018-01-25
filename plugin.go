@@ -155,8 +155,8 @@ func (p *Plugin) Exec() error {
 		"--conf spark.kubernetes.shuffle.labels='%s' "+
 		"--conf spark.kubernetes.authenticate.driver.serviceAccountName='%s' "+
 		"--conf spark.metrics.conf='%s' "+
-		"%s "+
-		"%s "+
+		"--conf spark.eventLog.enabled='%s' "+
+		"--conf spark.eventLog.dir='%s' "+
 		"%s "+
 		"%s "+
 		"%s "+
@@ -178,9 +178,9 @@ func (p *Plugin) Exec() error {
 		p.Config.SparkKubernetesShuffleLabels,
 		p.Config.KubernetesAuthenticateDriverServiceAccountName,
 		p.Config.SparkMetricsConf,
-		clintCertAuth,
 		p.Config.SparkEventLogEnabled,
 		p.Config.SparkEvenLogDir,
+		clintCertAuth,
 		p.Config.SparkPackages,
 		p.Config.SparkExcludePackages,
 		p.Config.SparkAppSource,

@@ -217,7 +217,7 @@ func run(c *cli.Context) {
 			KubernetesAuthenticateSubmissionClientKeyFile:  c.String("plugin.kubernetes.authenticate.submission.clientKeyFile"),
 			SparkMetricsConf:                               c.String("plugin.spark.metrics.conf"),
 			SparkEventLogEnabled:                           c.String("plugin.spark.eventLog.enabled"),
-			SparkEvenLogDir:                                c.String("plugin.spark.metrics.conf"),
+			SparkEvenLogDir:                                c.String("plugin.spark.eventLog.dir"),
 			SparkPackages:                                  c.String("plugin.spark.packages"),
 			SparkExcludePackages:                           c.String("plugin.spark.exclude-packages"),
 			SparkAppSource:                                 c.String("plugin.spark.app.source"),
