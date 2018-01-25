@@ -167,6 +167,16 @@ func main() {
 			Usage:  "Spark App Args",
 			EnvVar: "PLUGIN_SPARK_APP_ARGS",
 		},
+		cli.StringFlag{
+			Name:   "plugin.spark.eventLog.dir",
+			Usage:  "Spark Event Log Directory",
+			EnvVar: "PLUGIN_SPARK_EVENTLOG_DIR",
+		},
+		cli.StringFlag{
+			Name:   "plugin.spark.eventLog.enabled",
+			Usage:  "Spark Event Log Enabled",
+			EnvVar: "PLUGIN_SPARK_EVENTLOG_ENABLED",
+		},
 	}
 	app.Run(os.Args)
 }
@@ -206,6 +216,8 @@ func run(c *cli.Context) {
 			KubernetesAuthenticateSubmissionClientCertFile: c.String("plugin.kubernetes.authenticate.submission.clientCertFile"),
 			KubernetesAuthenticateSubmissionClientKeyFile:  c.String("plugin.kubernetes.authenticate.submission.clientKeyFile"),
 			SparkMetricsConf:                               c.String("plugin.spark.metrics.conf"),
+			SparkEventLogEnabled:                           c.String("plugin.spark.eventLog.enabled"),
+			SparkEvenLogDir:                                c.String("plugin.spark.metrics.conf"),
 			SparkPackages:                                  c.String("plugin.spark.packages"),
 			SparkExcludePackages:                           c.String("plugin.spark.exclude-packages"),
 			SparkAppSource:                                 c.String("plugin.spark.app.source"),

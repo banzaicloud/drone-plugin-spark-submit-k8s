@@ -78,6 +78,8 @@ type (
 		KubernetesAuthenticateSubmissionClientCertFile string
 		KubernetesAuthenticateSubmissionClientKeyFile  string
 		SparkMetricsConf                               string
+		SparkEventLogEnabled                           string
+		SparkEvenLogDir                                string
 		SparkPackages                                  string
 		SparkExcludePackages                           string
 		SparkAppSource                                 string
@@ -136,7 +138,7 @@ func (p *Plugin) Exec() error {
 		p.Config.SparkExcludePackages = fmt.Sprintf("--exclude-packages %s", p.Config.SparkExcludePackages)
 	}
 
-	sparkRunCmd := fmt.Sprintf("/opt/spark/bin/spark-submit --verbose "+"--deploy-mode cluster "+
+	sparkRunCmd := fmt.Sprintf("/opt/spark/bin/spark-submit --verbose " + "--deploy-mode cluster "+
 		"--class %s "+
 		"--master %s "+
 		"--kubernetes-namespace %s "+
@@ -153,6 +155,8 @@ func (p *Plugin) Exec() error {
 		"--conf spark.kubernetes.shuffle.labels='%s' "+
 		"--conf spark.kubernetes.authenticate.driver.serviceAccountName='%s' "+
 		"--conf spark.metrics.conf='%s' "+
+		"%s "+
+		"%s "+
 		"%s "+
 		"%s "+
 		"%s "+
@@ -175,6 +179,8 @@ func (p *Plugin) Exec() error {
 		p.Config.KubernetesAuthenticateDriverServiceAccountName,
 		p.Config.SparkMetricsConf,
 		clintCertAuth,
+		p.Config.SparkEventLogEnabled,
+		p.Config.SparkEvenLogDir,
 		p.Config.SparkPackages,
 		p.Config.SparkExcludePackages,
 		p.Config.SparkAppSource,
