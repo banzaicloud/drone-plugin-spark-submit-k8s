@@ -80,6 +80,8 @@ type (
 		SparkMetricsConf                               string
 		SparkEventLogEnabled                           string
 		SparkEvenLogDir                                string
+		AzureStorageAccount                            string
+		AzureStorageAccountAccessKey                   string
 		SparkPackages                                  string
 		SparkExcludePackages                           string
 		SparkAppSource                                 string
@@ -108,7 +110,9 @@ func (p *Plugin) Exec() error {
 		}
 		return nil
 	}
-	var clintCertAuth string
+
+	clintCertAuth :=""
+
 	if p.Config.SparkKubernetesLocalDeploy == "true" {
 		if p.Config.SparkKubernetesLocalUrl == "" || p.Config.SparkKubernetesLocalPort == "" {
 			log.Panicf("Kubernetes api endpoints is missing! URL: %q, Port: %q",
@@ -130,12 +134,24 @@ func (p *Plugin) Exec() error {
 
 	}
 
+	packages := ""
 	if p.Config.SparkPackages != "" {
-		p.Config.SparkPackages = fmt.Sprintf("--packages %s", p.Config.SparkPackages)
+		packages = fmt.Sprintf("--packages %s", p.Config.SparkPackages)
 	}
 
+	excludePackages := ""
 	if p.Config.SparkExcludePackages != "" {
-		p.Config.SparkExcludePackages = fmt.Sprintf("--exclude-packages %s", p.Config.SparkExcludePackages)
+		excludePackages = fmt.Sprintf("--exclude-packages %s", p.Config.SparkExcludePackages)
+	}
+
+	eventLogParams := ""
+	if p.Config.SparkEventLogEnabled != "" {
+		eventLogParams = fmt.Sprintf("--conf spark.eventLog.enabled='%s' --conf spark.eventLog.dir='%s'", p.Config.SparkEventLogEnabled ,p.Config.SparkEvenLogDir)
+	}
+
+	azureStorageAccountParams := ""
+	if p.Config.AzureStorageAccount != "" {
+		azureStorageAccountParams = fmt.Sprintf("--conf spark.hadoop.fs.azure.account.key.%s.blob.core.windows.net=%s", p.Config.AzureStorageAccount, p.Config.AzureStorageAccountAccessKey)
 	}
 
 	sparkRunCmd := fmt.Sprintf("/opt/spark/bin/spark-submit --verbose " + "--deploy-mode cluster "+
@@ -155,8 +171,8 @@ func (p *Plugin) Exec() error {
 		"--conf spark.kubernetes.shuffle.labels='%s' "+
 		"--conf spark.kubernetes.authenticate.driver.serviceAccountName='%s' "+
 		"--conf spark.metrics.conf='%s' "+
-		"--conf spark.eventLog.enabled='%s' "+
-		"--conf spark.eventLog.dir='%s' "+
+		"%s "+
+		"%s "+
 		"%s "+
 		"%s "+
 		"%s "+
@@ -178,11 +194,11 @@ func (p *Plugin) Exec() error {
 		p.Config.SparkKubernetesShuffleLabels,
 		p.Config.KubernetesAuthenticateDriverServiceAccountName,
 		p.Config.SparkMetricsConf,
-		p.Config.SparkEventLogEnabled,
-		p.Config.SparkEvenLogDir,
+		eventLogParams,
+		azureStorageAccountParams,
 		clintCertAuth,
-		p.Config.SparkPackages,
-		p.Config.SparkExcludePackages,
+		packages,
+		excludePackages,
 		p.Config.SparkAppSource,
 		p.Config.SparkAppArgs,
 	)
