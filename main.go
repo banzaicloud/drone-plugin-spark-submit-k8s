@@ -177,6 +177,16 @@ func main() {
 			Usage:  "Spark Event Log Enabled",
 			EnvVar: "PLUGIN_SPARK_EVENTLOG_ENABLED",
 		},
+		cli.StringFlag{
+			Name:   "plugin.azure.storage.account",
+			Usage:  "Azure storage account",
+			EnvVar: "PLUGIN_AZURE_STORAGE_ACCOUNT,AZURE_STORAGE_ACCOUNT",
+		},
+		cli.StringFlag{
+			Name:   "plugin.azure.storage.account.access.key",
+			Usage:  "Azure storage account access key",
+			EnvVar: "PLUGIN_AZURE_STORAGE_ACCOUNT_ACCESS_KEY,AZURE_STORAGE_ACCOUNT_ACCESS_KEY",
+		},
 	}
 	app.Run(os.Args)
 }
@@ -218,6 +228,8 @@ func run(c *cli.Context) {
 			SparkMetricsConf:                               c.String("plugin.spark.metrics.conf"),
 			SparkEventLogEnabled:                           c.String("plugin.spark.eventLog.enabled"),
 			SparkEvenLogDir:                                c.String("plugin.spark.eventLog.dir"),
+			AzureStorageAccount:                            c.String("plugin.azure.storage.account"),
+			AzureStorageAccountAccessKey:                   c.String("plugin.azure.storage.account.access.key"),
 			SparkPackages:                                  c.String("plugin.spark.packages"),
 			SparkExcludePackages:                           c.String("plugin.spark.exclude-packages"),
 			SparkAppSource:                                 c.String("plugin.spark.app.source"),
