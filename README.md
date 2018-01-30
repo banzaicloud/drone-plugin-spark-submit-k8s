@@ -1,9 +1,9 @@
 # Spark submit client plugin for Pipeline CI/CD
 
-This project contains a plugin that can be used to set up a `spark-submit` step in the Banzai Cloud [Pipeline](https://github.com/banzaicloud/pipeline) workflow.
-This plugin can be configured as a building block of the Banzai Pipeline CI/CD workflow and it can be specified/used and configured in the Pipeline CI/CD configuration file.
+This repo contains a plugin that can be used to set up a `spark-submit` step in the Banzai Cloud [Pipeline](https://github.com/banzaicloud/pipeline) workflow.
+This plugin is a building block of the Pipeline CI/CD workflow and it's configured using the steps below.
 
-For better understanding of the Banzai Pipeline CI/CD workflow and PaaS please check [this](https://github.com/banzaicloud/pipeline/README.md) documentation
+>For better understanding of the Banzai Pipeline CI/CD workflow and PaaS please check [this](https://github.com/banzaicloud/pipeline/README.md) documentation
 
 This plugin implements a fully configurable `spark-submit` step, as described [here](https://spark.apache.org/docs/latest/submitting-applications.html).
 
