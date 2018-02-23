@@ -4,88 +4,43 @@ import (
 	"fmt"
 	"os"
 
+	"bytes"
 	"github.com/progrium/go-shell"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
+	"text/template"
+	"strconv"
+	"errors"
+)
+
+const (
+	SPARK_SUBMIT_TEMPLATE_NAME = "spark-submit"
+	SPARK_SUBMIT_TEMPLATE      = `{{- define "spark-submit-tpl" }}/opt/spark/bin/spark-submit --verbose --deploy-mode cluster
+{{- range $key, $value := .SubmitOptions }} --{{ $key }} {{ $value }}{{ end -}}
+{{- range $key, $value := .SparkConfig }} --conf {{ $key -}} = {{- $value }}{{ end -}}
+{{- range $key, $value := .AppArgs }} {{ $value -}} {{ end -}} {{ end -}}
+{{- template "spark-submit-tpl" . -}}
+`
 )
 
 type (
-	Repo struct {
-		Owner   string
-		Name    string
-		Link    string
-		Avatar  string
-		Branch  string
-		Private bool
-		Trusted bool
-	}
+	// the configuration required to set up the spark submit command
+	Config struct {
+		// arguments passed to the spark submit command (with --<option>)
+		SubmitOptions map[string]string
 
-	Build struct {
-		Number   int
-		Event    string
-		Status   string
-		Deploy   string
-		Created  int64
-		Started  int64
-		Finished int64
-		Link     string
-	}
+		// spark configuration passed as --conf
+		SparkConfig map[string]string
 
-	Author struct {
-		Name   string
-		Email  string
-		Avatar string
-	}
+		// application arguments
+		AppArgs []string
 
-	Commit struct {
-		Remote  string
-		Sha     string
-		Ref     string
-		Link    string
-		Branch  string
-		Message string
-		Author  Author
+		// the plugin environment
+		Env map[string]string
 	}
 
 	Plugin struct {
-		Repo   Repo
-		Build  Build
-		Commit Commit
 		Config Config
-	}
-
-	Config struct {
-		SparkDeployMode                                string
-		SparkKubernetesLocalDeploy                     string
-		SparkKubernetesLocalUrl                        string
-		SparkKubernetesLocalPort                       string
-		SparkClass                                     string
-		SparkMaster                                    string
-		SparkKubernetesNamespace                       string
-		SparkAppName                                   string
-		SparkLocalDir                                  string
-		KubernetesDriverDockerImage                    string
-		KubernetesExecutorDockerImage                  string
-		KubernetesInitContainerDockerImage             string
-		SparkDynamicAllocationEnabled                  string
-		KubernetesResourceStagingServerUri             string
-		KubernetesResourceStagingServerInternalUri     string
-		SparkShuffleServiceEnabled                     string
-		SparkKubernetesShuffleNamespace                string
-		SparkKubernetesShuffleLabels                   string
-		KubernetesAuthenticateDriverServiceAccountName string
-		KubernetesAuthenticateSubmissionCaCertFile     string
-		KubernetesAuthenticateSubmissionClientCertFile string
-		KubernetesAuthenticateSubmissionClientKeyFile  string
-		SparkMetricsConf                               string
-		SparkEventLogEnabled                           string
-		SparkEvenLogDir                                string
-		AzureStorageAccount                            string
-		AzureStorageAccountAccessKey                   string
-		SparkPackages                                  string
-		SparkExcludePackages                           string
-		SparkAppSource                                 string
-		SparkAppArgs                                   string
 	}
 )
 
@@ -99,109 +54,32 @@ func init() {
 
 }
 
+// Exec executes the plugin logic
 func (p *Plugin) Exec() error {
+	log.Infof("executing [ %s ]", AppName)
+
 	validate = validator.New()
 	err := validate.Struct(p)
 
-	//&p.Config.SparkMaster
 	if err != nil {
 		for _, v := range err.(validator.ValidationErrors) {
-			fmt.Printf("[%s] field validation error (%+v)\n", v.Field(), v)
+			log.Errorf("[ %s ] field validation error (%+v)", v.Field(), v)
 		}
 		return nil
 	}
 
-	clintCertAuth :=""
-
-	if p.Config.SparkKubernetesLocalDeploy == "true" {
-		if p.Config.SparkKubernetesLocalUrl == "" || p.Config.SparkKubernetesLocalPort == "" {
-			log.Panicf("Kubernetes api endpoints is missing! URL: %q, Port: %q",
-				p.Config.SparkKubernetesLocalUrl,
-				p.Config.SparkKubernetesLocalPort)
-		}
-		p.Config.SparkMaster = fmt.Sprintf("k8s://https://%s:%s",
-			p.Config.SparkKubernetesLocalUrl,
-			p.Config.SparkKubernetesLocalPort,
-		)
-	} else {
-		clintCertAuth = fmt.Sprintf(" --conf spark.kubernetes.authenticate.submission.caCertFile=%s "+
-			"--conf spark.kubernetes.authenticate.submission.clientCertFile=%s "+
-			"--conf spark.kubernetes.authenticate.submission.clientKeyFile=%s ",
-			p.Config.KubernetesAuthenticateSubmissionCaCertFile,
-			p.Config.KubernetesAuthenticateSubmissionClientCertFile,
-			p.Config.KubernetesAuthenticateSubmissionClientKeyFile,
-		)
-
+	// handle defaults and conditional configs
+	err = p.Config.decorateConfig();
+	if err != nil {
+		log.Errorf("error while decorating plugin configuration: %s", err)
+		return err
 	}
 
-	packages := ""
-	if p.Config.SparkPackages != "" {
-		packages = fmt.Sprintf("--packages %s", p.Config.SparkPackages)
+	sparkRunCmd, err := p.Config.AssembleSparkSubmitCommand()
+	if err != nil {
+		log.Errorf("error while assembling spark submit command: %s", err)
+		return err
 	}
-
-	excludePackages := ""
-	if p.Config.SparkExcludePackages != "" {
-		excludePackages = fmt.Sprintf("--exclude-packages %s", p.Config.SparkExcludePackages)
-	}
-
-	eventLogParams := ""
-	if p.Config.SparkEventLogEnabled != "" {
-		eventLogParams = fmt.Sprintf("--conf spark.eventLog.enabled='%s' --conf spark.eventLog.dir='%s'", p.Config.SparkEventLogEnabled ,p.Config.SparkEvenLogDir)
-	}
-
-	azureStorageAccountParams := ""
-	if p.Config.AzureStorageAccount != "" {
-		azureStorageAccountParams = fmt.Sprintf("--conf spark.hadoop.fs.azure.account.key.%s.blob.core.windows.net=%s", p.Config.AzureStorageAccount, p.Config.AzureStorageAccountAccessKey)
-	}
-
-	sparkRunCmd := fmt.Sprintf("/opt/spark/bin/spark-submit --verbose " + "--deploy-mode cluster "+
-		"--class %s "+
-		"--master %s "+
-		"--kubernetes-namespace %s "+
-		"--conf spark.app.name=%s "+
-		"--conf spark.local.dir=%s "+
-		"--conf spark.kubernetes.driver.docker.image=%s "+
-		"--conf spark.kubernetes.executor.docker.image=%s "+
-		"--conf spark.kubernetes.initcontainer.docker.image=%s "+
-		"--conf spark.dynamicAllocation.enabled=%s "+
-		"--conf spark.kubernetes.resourceStagingServer.uri=%s "+
-		"--conf spark.kubernetes.resourceStagingServer.internal.uri=%s "+
-		"--conf spark.shuffle.service.enabled=%s "+
-		"--conf spark.kubernetes.shuffle.namespace=%s "+
-		"--conf spark.kubernetes.shuffle.labels='%s' "+
-		"--conf spark.kubernetes.authenticate.driver.serviceAccountName='%s' "+
-		"--conf spark.metrics.conf='%s' "+
-		"%s "+
-		"%s "+
-		"%s "+
-		"%s "+
-		"%s "+
-		"%s "+
-		"%s ",
-		p.Config.SparkClass,
-		p.Config.SparkMaster,
-		p.Config.SparkKubernetesNamespace,
-		p.Config.SparkAppName,
-		p.Config.SparkLocalDir,
-		p.Config.KubernetesDriverDockerImage,
-		p.Config.KubernetesExecutorDockerImage,
-		p.Config.KubernetesInitContainerDockerImage,
-		p.Config.SparkDynamicAllocationEnabled,
-		p.Config.KubernetesResourceStagingServerUri,
-		p.Config.KubernetesResourceStagingServerInternalUri,
-		p.Config.SparkShuffleServiceEnabled,
-		p.Config.SparkKubernetesShuffleNamespace,
-		p.Config.SparkKubernetesShuffleLabels,
-		p.Config.KubernetesAuthenticateDriverServiceAccountName,
-		p.Config.SparkMetricsConf,
-		eventLogParams,
-		azureStorageAccountParams,
-		clintCertAuth,
-		packages,
-		excludePackages,
-		p.Config.SparkAppSource,
-		p.Config.SparkAppArgs,
-	)
 
 	log.Debugf("Spark Command: %s", sparkRunCmd)
 	sparkRunResult := shell.Run(sparkRunCmd)
@@ -210,8 +88,72 @@ func (p *Plugin) Exec() error {
 	log.Debugf("Stderr: %s", sparkRunResult.Stderr)
 
 	if sparkRunResult.ExitStatus != 0 {
-		os.Exit(sparkRunResult.ExitStatus)
+		log.Errorf("spark submit returned with the code: [ %s ]", sparkRunResult.ExitStatus)
+		return errors.New(fmt.Sprintf("spark submit returned with the code: [ %s ]", sparkRunResult.ExitStatus))
 	}
 
 	return nil
+}
+
+// SubmitCommandStr assembles the spark submit command string for the given configuration
+func (submitConfigs *Config) AssembleSparkSubmitCommand() (string, error) {
+	log.Debug("assembling the spark submit command ...")
+
+	partTpl, err := template.New(SPARK_SUBMIT_TEMPLATE_NAME).Parse(SPARK_SUBMIT_TEMPLATE)
+	if err != nil {
+		log.Errorf("couldn't parse the submit command template, err: %s", err)
+		return "", err
+	}
+
+	var out bytes.Buffer
+	err = partTpl.ExecuteTemplate(&out, SPARK_SUBMIT_TEMPLATE_NAME, submitConfigs)
+	if err != nil {
+		log.Errorf("couldn't execute the submit command template, err: %s", err)
+		return "", err
+	}
+
+	log.Debugf("successfully assembled the spark submit options: %s", out.String())
+
+	return out.String(), err
+}
+
+// decorateConfig decorates the configuration with defaults or calculated values
+func (config *Config) decorateConfig() error {
+	log.Debugf("decorating spark submit configuration ...")
+
+	localDeploy, ok := config.Env["PLUGIN_SPARK_KUBERNETES_LOCAL_DEPLOY"];
+	if !ok {
+		log.Debugf("the env var [ %s ] is not set, defaulting it to true", "PLUGIN_SPARK_KUBERNETES_LOCAL_DEPLOY")
+		localDeploy = "true"
+	}
+
+	ld, err := strconv.ParseBool(localDeploy)
+	if err != nil {
+		log.Errorf("invalid value provided for the local deploy config: %s", err)
+		return err
+	}
+
+	if ld {
+		// the spark master url gets added to the options (local deploy)
+		config.SubmitOptions["master"] = fmt.Sprintf("k8s://https://%s:%s", config.Env["KUBERNETES_PORT_443_TCP_ADDR"],
+			config.Env["KUBERNETES_SERVICE_PORT_HTTPS"])
+
+		log.Debugf("added --master option:[ %s ]", config.SubmitOptions["master"])
+	} else {
+		// keys added in case of in cluster
+		config.SparkConfig["spark.kubernetes.authenticate.submission.caCertFile"] =
+			config.Env["PLUGIN_SPARK_KUBERNETES_AUTHENTICATE_SUBMISSION_CACERTFILE"]
+
+		config.SparkConfig["spark.kubernetes.authenticate.submission.clientCertFile"] =
+			config.Env["PLUGIN_SPARK_KUBERNETES_AUTHENTICATE_SUBMISSION_CLIENTCERTFILE"]
+
+		config.SparkConfig["spark.kubernetes.authenticate.submission.clientKeyFile"] =
+			config.Env["PLUGIN_SPARK_KUBERNETES_AUTHENTICATE_SUBMISSION_CLIENTKEYFILE"]
+
+		log.Debugf("added in cluster spark configs")
+	}
+	log.Debugf("decorating spark submit configuration ... done.")
+
+	return nil
+
 }
