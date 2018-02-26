@@ -1,66 +1,36 @@
 # Spark submit client plugin for Pipeline CI/CD
 
-This repo contains a plugin that can be used to set up a `spark-submit` step in the Banzai Cloud [Pipeline](https://github.com/banzaicloud/pipeline) workflow.
-This plugin is a building block of the Pipeline CI/CD workflow and it is configured using the steps below.
+This repo contains a plugin that can be used to set up a `spark-submit` step in the Banzai Cloud [Pipeline](https://github.com/banzaicloud/pipeline) CI/CD workflow.
 
 >For better understanding of the Banzai Pipeline CI/CD workflow and PaaS please check [this](https://github.com/banzaicloud/pipeline/README.md) documentation
 
-This plugin implements a fully configurable `spark-submit` step, as described [here](https://spark.apache.org/docs/latest/submitting-applications.html).
+This plugin executes a fully configurable `spark-submit` step, as described [here](https://spark.apache.org/docs/latest/submitting-applications.html).
+
+The plugin supports all the configuration options available for the spark-submit command.
+> Please note that the plugin is primarily intended to be used on Kubernetes clusters thus some configuration is automatically taken from items provided by the k8s cluster (eg.: --master)
+
+In the Banzai Cloud Pipeline CI/CD flow definition the `spark-submit` step description may have three configuration sections (reflected by the names of the step elements):
+
+ * `spark_submit_options` - the configuration entries that are passed in the form:
+```
+--[option] value
+```
+
+*  `spark_submit_configs` - items passed to the command in the form:
+```
+--conf [key]=[value]
+```
+
+* `spark_submit_app_args` - a collection (list) that is passed to the command "as is" - a space delimited set of entries
+
+>The first two groups of configuration are represented as yaml maps while the last as a yaml list.
+All sections are built dynamically, custom configuration options, spark configuration and application arguments can be passed in following the described conventions.
 
 ## Usage
 
-For using the plugin please configure the `.pipeline.yml` properly, and let the magic happen. 
+For using the plugin please configure the `.pipeline.yml` properly, and let the magic happen.
 
 If you need help configuring the `yml` please read the [Readme](https://github.com/banzaicloud/drone-plugin-pipeline-client) of the related plugin, which handles the cluster related operations.
-
-To configure the `spark-submit` related operations configuration step `run` also has to be added to the `.pipeline.yml`, little help and available options are listed below:
-
-## Main options
-
-| Option                       | Description                                    | Default  | Required |
-| -------------                | -----------------------                        | --------:| --------:|
-| spark_deploy_mode | Mode the spark should run | cluster | No |
-| spark_class  | Main class of the spark application | ""       | Yes |
-| spark_kubernetes_local_deploy | Use local kubernetes cluster | true | No |
-| spark_kubernetes_namespace | Spark K8S Namespace | default | No |
-| spark_app_name | Spark App Name | "" | Yes |
-| spark.local.dir | Spark Local Directory | "" | Yes |
-| spark_kubernetes_driver_docker_image | Spark K8S Driver Image | "" | Yes |
-| spark_kubernetes_executor_docker_image | Spark K8S Executor Image | "" | Yes |
-| spark_kubernetes_initcontainer_docker_image | Spark K8S Initcontainer Image | "" | Yes |
-| spark_dynamic_allocation | Dynamic Allocation | true | No |
-| spark_kubernetes_resourcestagingserver_uri | Spark K8S Resource Staging Server URL | "" | Yes |
-| spark_kubernetes_resourcestagingserver_internal_uri | Spark K8S Resource Staging Server Internal URL | "" | Yes |
-| spark_shuffle_service_enabled | Spark Shuffle Service Enabled | true | No |
-| spark_kubernetes_shuffle_namespace | Spark K8S Shuffle Namespace | default | No |
-| spark_kubernetes_shuffle_labels | Spark K8S Shuffle Labels | "" | Yes |
-| spark_kubernetes_authenticate_driver_serviceaccount_name | Spark Driver K8s service account name | "" | Yes |
-| spark_kubernetes_authenticate_submission_caCertFile | Spark K8S Auth CA CertFile | "" | No |
-| spark_kubernetes_authenticate_submission_clientCertFile | Spark K8S Auth Client CertFile | "" | No |
-| spark_kubernetes_authenticate_submission_clientKeyFile | Spark K8S Auth Client KeyFile | "" | No |
-| spark_metrics_conf | Spark Metrics Config | "" | Yes |
-| spark_app_source | Spark App source | "" | Yes |
-| spark_app_args | Spark App Args | "" | Yes |
-| spark_eventLog_enabled | Spark Event Log Enabled | "" | Yes |
-
-## Cloud provider specific options
-
-If the `spark_eventLog_enabled` set to `yes` there are couple of cloud provider specific options.
-
-### Amazon
-
-| Option                       | Description                                    | Default  | Required |
-| -------------                | -----------------------                        | --------:| --------:|
-| spark_eventLog_dir | Spark Event Log Directory (s3a://spark-k8-logs/eventLog)| "" | No |
-
-### Azure (AKS)
-
-| Option                       | Description                                    | Default  | Required |
-| -------------                | -----------------------                        | --------:| --------:|
-| spark_eventLog_dir | Spark Event Log Directory (wasb://...) | "" | No |
-| azure_storage_account | Azure storage account | "" | No |
-| azure_storage_account_access_key | Azure storage account access key | "" | No |
-
 
 
 ## Examples
@@ -68,52 +38,31 @@ If the `spark_eventLog_enabled` set to `yes` there are couple of cloud provider 
 ### Spark-Pi
 
 ```
- run:
-    image: banzaicloud/plugin-k8s-proxy:0.2.0
-    original_image: banzaicloud/plugin-spark-submit-k8s:0.2.0
-    pod_service_account: spark
-    pull: true
-    spark_deploy_mode: cluster
-    spark_class: banzaicloud.SparkPi
-    spark_app_name: sparkpi
-    spark_local_dir: /tmp/spark-local
-    spark_kubernetes_driver_docker_image: banzaicloud/spark-driver:v2.2.0-k8s-1.0.197
-    spark_kubernetes_executor_docker_image: banzaicloud/spark-executor:v2.2.0-k8s-1.0.197
-    spark_kubernetes_initcontainer_docker_image: banzaicloud/spark-init:v2.2.0-k8s-1.0.197
-    spark_kubernetes_resourcestagingserver_uri: http://spark-rss:10000
-    spark_kubernetes_resourcestagingserver_internal_uri: http://spark-rss:10000
-    spark_kubernetes_shuffle_labels: "app=spark-shuffle-service,spark-version=2.2.0"
-    spark_kubernetes_authenticate_driver_serviceaccount_name: "spark"
-    spark_metrics_conf: /opt/spark/conf/metrics.properties
-    spark_eventLog_enabled: false
-    spark_app_source: target/spark-pi-1.0-SNAPSHOT.jar
-    spark_app_args: 1000
-```
-For the full the configuration file please click [here](https://github.com/banzaicloud/spark-pi-example/blob/master/.pipeline.yml).
+run:
+   image: banzaicloud/plugin-k8s-proxy:latest
+   pull: true
+   service_account: spark
 
-### Spark-Pdi
-
+   original_image: banzaicloud/plugin-spark-submit-k8s:latest
+   spark_submit_options:
+     class: banzaicloud.SparkPi
+     kubernetes-namespace: default
+   spark_submit_configs:
+     spark.app.name: sparkpi
+     spark.local.dir: /tmp/spark-locals
+     spark.kubernetes.driver.docker.image: banzaicloud/spark-driver:v2.2.0-k8s-1.0.197
+     spark.kubernetes.executor.docker.image: banzaicloud/spark-executor:v2.2.0-k8s-1.0.197
+     spark.kubernetes.initcontainer.docker.image: banzaicloud/spark-init:v2.2.0-k8s-1.0.197
+     spark.dynamicAllocation.enabled: "true"
+     spark.kubernetes.resourceStagingServer.uri: http://spark-rss:10000
+     spark.kubernetes.resourceStagingServer.internal.uri: http://spark-rss:10000
+     spark.shuffle.service.enabled: "true"
+     spark.kubernetes.shuffle.namespace: default
+     spark.kubernetes.shuffle.labels: app=spark-shuffle-service,spark-version=2.2.0
+     spark.kubernetes.authenticate.driver.serviceAccountName: spark
+     spark.metrics.conf: /opt/spark/conf/metrics.properties
+   spark_submit_app_args:
+     - target/spark-pi-1.0-SNAPSHOT.jar
+     - 1000
 ```
- run:
-    image: banzaicloud/plugin-k8s-proxy:0.2.0
-    original_image: banzaicloud/plugin-spark-submit-k8s:0.2.0
-    pod_service_account: spark
-    pull: true
-    spark_deploy_mode: cluster
-    spark_class: com.banzaicloud.sfdata.SFPDIncidents
-    spark_app_name: SFPDIncidents
-    spark_local_dir: /tmp/spark-local
-    spark_kubernetes_driver_docker_image: banzaicloud/spark-driver:v2.2.0-k8s-1.0.197
-    spark_kubernetes_executor_docker_image: banzaicloud/spark-executor:v2.2.0-k8s-1.0.197
-    spark_kubernetes_initcontainer_docker_image: banzaicloud/spark-init:v2.2.0-k8s-1.0.197
-    spark_kubernetes_resourcestagingserver_uri: http://spark-rss:10000
-    spark_kubernetes_resourcestagingserver_internal_uri: http://spark-rss:10000
-    spark_kubernetes_shuffle_labels: "app=spark-shuffle-service,spark-version=2.2.0"
-    spark_kubernetes_authenticate_driver_serviceaccount_name: "spark"
-    spark_metrics_conf: /opt/spark/conf/metrics.properties
-    spark_eventLog_enabled: false
-    spark_app_source: target/scala-2.11/sf-police-incidents_2.11-0.1.jar
-    spark_app_args: --dataPath s3a://lp-deps-test/data/Police_Department_Incidents.csv
-```
-
-For the full the configuration file please click [here](https://github.com/banzaicloud/spark-pdi-example/blob/master/.pipeline.yml).
+For the full the configuration file please click [here](https://raw.githubusercontent.com/lpuskas/spark-pi-example/master/.pipeline.yml.gke.template).
