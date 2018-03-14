@@ -60,3 +60,22 @@ func TestPlugin_AssembleSparkSubmitCommand(t *testing.T) {
 
 }
 
+func TestConfig_ProcessTemplateConfigs(t *testing.T) {
+	config := Config{
+		SubmitOptions: map[string]string{"key.{{ .SUBMIT_KEY_PLACEHOLDER }}": "value {{ .SUBMIT_VALUE_PLACEHOLDER }}",},
+		SparkConfig:   map[string]string{"key.{{ .CONFIG_KEY_PLACEHOLDER }}": "value {{ .CONFIG_VALUE_PLACEHOLDER }}",},
+		Env: map[string]string{
+			"SUBMIT_KEY_PLACEHOLDER":   "submit_replaced",
+			"SUBMIT_VALUE_PLACEHOLDER": "submit space replaced",
+			"CONFIG_KEY_PLACEHOLDER":   "config_replaced",
+			"CONFIG_VALUE_PLACEHOLDER": "config space replaced",
+		},
+	}
+
+	config.ProcessTemplateConfigs()
+	assert.New(t)
+
+	assert.Equal(t, "value submit space replaced", config.SubmitOptions["key.submit_replaced"])
+	assert.Equal(t, "value config space replaced", config.SparkConfig["key.config_replaced"])
+
+}

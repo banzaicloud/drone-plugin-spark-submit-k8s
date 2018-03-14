@@ -11,6 +11,7 @@ import (
 	"text/template"
 	"strconv"
 	"errors"
+	"strings"
 )
 
 const (
@@ -74,6 +75,9 @@ func (p *Plugin) Exec() error {
 		log.Errorf("error while decorating plugin configuration: %s", err)
 		return err
 	}
+
+	// replace placeholders
+	p.Config.ProcessTemplateConfigs()
 
 	sparkRunCmd, err := p.Config.AssembleSparkSubmitCommand()
 	if err != nil {
@@ -156,4 +160,42 @@ func (config *Config) decorateConfig() error {
 
 	return nil
 
+}
+
+func (config *Config) ProcessTemplateConfigs() {
+	processTemplateConfigs(&config.SubmitOptions, &config.Env)
+	processTemplateConfigs(&config.SparkConfig, &config.Env)
+}
+
+func processTemplateConfigs(configMap, pluginEnv *map[string]string) error {
+	log.Debug("processing configurations given as go templates")
+
+	for configKey, configValue := range *configMap {
+		newKey := replaceValues(configKey, *pluginEnv)
+		newVal := replaceValues(configValue, *pluginEnv)
+
+		if strings.Compare(configKey, newKey) != 0 {
+			delete(*configMap, configKey)
+		}
+
+		(*configMap)[newKey] = newVal
+	}
+
+	return nil
+}
+
+func replaceValues(configTpl string, pluginEnv map[string]string) string {
+	log.Debugf("executing template: [%s]", configTpl)
+
+	goTpl, err := template.New("tpl").Parse(configTpl)
+	if err != nil {
+		log.Fatalf("failed to create template: [%s]", err.Error())
+	}
+
+	var tpl bytes.Buffer
+	err = goTpl.ExecuteTemplate(&tpl, "tpl", pluginEnv)
+	if err != nil {
+		log.Fatalf("failed to execute template: [%s]", err.Error())
+	}
+	return tpl.String()
 }
