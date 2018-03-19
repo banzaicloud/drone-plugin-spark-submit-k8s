@@ -64,11 +64,14 @@ func TestConfig_ProcessTemplateConfigs(t *testing.T) {
 	config := Config{
 		SubmitOptions: map[string]string{"key.{{ .SUBMIT_KEY_PLACEHOLDER }}": "value {{ .SUBMIT_VALUE_PLACEHOLDER }}",},
 		SparkConfig:   map[string]string{"key.{{ .CONFIG_KEY_PLACEHOLDER }}": "value {{ .CONFIG_VALUE_PLACEHOLDER }}",},
+		AppArgs:       []string{"{{ .APP_ARG_PLACEHOLDER }}={{ .APP_ARG_VALUE_PLACEHOLDER }}"},
 		Env: map[string]string{
-			"SUBMIT_KEY_PLACEHOLDER":   "submit_replaced",
-			"SUBMIT_VALUE_PLACEHOLDER": "submit space replaced",
-			"CONFIG_KEY_PLACEHOLDER":   "config_replaced",
-			"CONFIG_VALUE_PLACEHOLDER": "config space replaced",
+			"SUBMIT_KEY_PLACEHOLDER":    "submit_replaced",
+			"SUBMIT_VALUE_PLACEHOLDER":  "submit space replaced",
+			"CONFIG_KEY_PLACEHOLDER":    "config_replaced",
+			"CONFIG_VALUE_PLACEHOLDER":  "config space replaced",
+			"APP_ARG_PLACEHOLDER":       "appArg",
+			"APP_ARG_VALUE_PLACEHOLDER": "appArgValue",
 		},
 	}
 
@@ -77,5 +80,6 @@ func TestConfig_ProcessTemplateConfigs(t *testing.T) {
 
 	assert.Equal(t, "value submit space replaced", config.SubmitOptions["key.submit_replaced"])
 	assert.Equal(t, "value config space replaced", config.SparkConfig["key.config_replaced"])
+	assert.Equal(t, "appArg=appArgValue", config.AppArgs[0])
 
 }

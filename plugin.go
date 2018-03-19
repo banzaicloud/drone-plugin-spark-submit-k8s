@@ -165,6 +165,7 @@ func (config *Config) decorateConfig() error {
 func (config *Config) ProcessTemplateConfigs() {
 	processTemplateConfigs(&config.SubmitOptions, &config.Env)
 	processTemplateConfigs(&config.SparkConfig, &config.Env)
+	processTemplateAppArgs(config.AppArgs, &config.Env)
 }
 
 func processTemplateConfigs(configMap, pluginEnv *map[string]string) error {
@@ -179,6 +180,16 @@ func processTemplateConfigs(configMap, pluginEnv *map[string]string) error {
 		}
 
 		(*configMap)[newKey] = newVal
+	}
+
+	return nil
+}
+
+func processTemplateAppArgs(argList []string, pluginEnv *map[string]string) error {
+	log.Debug("processing app args given as go templates")
+
+	for index, argVal := range argList {
+		argList[index] = replaceValues(argVal, *pluginEnv)
 	}
 
 	return nil
